@@ -16,7 +16,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.0, mkdocs-material-9.5.25">
+      <meta name="generator" content="mkdocs-1.6.0, mkdocs-material-9.5.26">
     
     
       
@@ -209,7 +209,7 @@ Forked/branched off of SWE-agent? Please use our latest formatting to resolve me
       
     </form>
     <div class="md-search__output">
-      <div class="md-search__scrollwrap" data-md-scrollfix>
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
         <div class="md-search-result" data-md-component="search-result">
           <div class="md-search-result__meta">
             Initializing search
@@ -901,6 +901,8 @@ Forked/branched off of SWE-agent? Please use our latest formatting to resolve me
       
         
       
+        
+      
     
     
     
@@ -1004,6 +1006,27 @@ Forked/branched off of SWE-agent? Please use our latest formatting to resolve me
   
   <span class="md-ellipsis">
     Environment variables
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../config/docker/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Docker images
   </span>
   
 
@@ -1388,6 +1411,13 @@ Let's start with an absolutely trivial example and solve an issue about a simple
 <span class="w">  </span>--config_file<span class="w"> </span>config/default_from_url.yaml<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--per_instance_cost_limit<span class="w"> </span><span class="m">2</span>.00
 </code></pre></div>
+<details>
+<summary>Output</summary>
+
+<div class="highlight"><pre><span></span><code>
+</code></pre></div>
+</details>
+
 <p>Here,</p>
 <ul>
 <li><code>--model_name</code> sets the language model that is used by SWE-agent (with <code>gpt4</code> being the default). More information on the available models in our <a href="../usage_faq/">FAQ</a></li>
@@ -1443,7 +1473,7 @@ URLs or paths to local repositories.</p>
 <p class="admonition-title">Uncommitted changes</p>
 <p>When running with a local <code>--repo_path</code>, SWE-agent will use the last commit, i.e., all local, uncommitted changes will not be seen by SWE-agent.</p>
 </div>
-<h2 id="installing-dependencies-and-setting-up-the-environment">Installing dependencies and setting up the environment</h2>
+<h2 id="installing-dependencies-and-setting-up-the-environment">Installing dependencies and setting up the environment <a name="environment-setup"></a></h2>
 <p>Now let's move on to a slightly more complicated issue (<a href="https://github.com/SWE-agent/test-repo/issues/22"><code>swe-agent/test-repo #22</code></a>).</p>
 <p>What makes it more complicated? This time the problematic code is part of a library <code>testpkg</code>, so SWE-agent first has to install the package in order to reproduce the issue before searching for the problematic code.</p>
 <p>In most circumstances, GPT4 will attempt to install the package and requirements (usually with some form of <code>pip install .</code> or <code>pip install pkg</code>). However, this wastes valuable queries to the LM. In addition, you might need to run your software for a specific python version or have other specific environment settings. The <code>--environment_setup</code> flag is used to fix this problem.</p>
@@ -1454,11 +1484,20 @@ URLs or paths to local repositories.</p>
 <span class="hll"><span class="w">  </span>--environment_setup<span class="w"> </span>config/environment_setup/py310_default.yaml
 </span></code></pre></div>
 <p>This time, <code>pip install -e .</code> is called before SWE-agent gets to work, installing the package defined in the repository.</p>
-<p>Let's take a look at the config file</p>
+<p>Let's take a look at the <code>py310_default.yaml</code> config file</p>
 <div class="highlight"><pre><span></span><code><span class="nt">python</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;3.10&#39;</span>
-<span class="nt">install</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;pip</span><span class="nv"> </span><span class="s">install</span><span class="nv"> </span><span class="s">-e</span><span class="nv"> </span><span class="s">.&#39;</span>
+<span class="c1"># Use uv pip for speedup, but fallback to classic pip if we fail</span>
+<span class="c1"># Upgrade pip to avoid https://stackoverflow.com/a/73779542/</span>
+<span class="nt">install</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;uv</span><span class="nv"> </span><span class="s">pip</span><span class="nv"> </span><span class="s">install</span><span class="nv"> </span><span class="s">-e</span><span class="nv"> </span><span class="s">.</span><span class="nv"> </span><span class="s">||</span><span class="nv"> </span><span class="s">(python</span><span class="nv"> </span><span class="s">-m</span><span class="nv"> </span><span class="s">pip</span><span class="nv"> </span><span class="s">install</span><span class="nv"> </span><span class="s">--upgrade</span><span class="nv"> </span><span class="s">pip</span><span class="nv"> </span><span class="s">&amp;&amp;</span><span class="nv"> </span><span class="s">python</span><span class="nv"> </span><span class="s">-m</span><span class="nv"> </span><span class="s">pip</span><span class="nv"> </span><span class="s">install</span><span class="nv"> </span><span class="s">-e</span><span class="nv"> </span><span class="s">.)&#39;</span>
 </code></pre></div>
-<p>Here, <code>install</code> is an arbitrary command that is run, while <code>python</code> will be the python version that is setup with conda.</p>
+<p>Here, <code>install</code> is an arbitrary command that is run, while <code>python</code> will be the required python version.
+The default install command will create an <a href="https://setuptools.pypa.io/en/latest/userguide/development_mode.html">editable install</a> of the python package.
+We first try to use <a href="https://pypi.org/project/uv/"><code>uv pip</code></a> (a much faster implementation of <code>pip</code> in <a href="https://www.rust-lang.org/">rust</a>), but fall back to "normal" pip if it fails.</p>
+<div class="admonition tip">
+<p class="admonition-title">Editable installs</p>
+<p>Using <a href="https://setuptools.pypa.io/en/latest/userguide/development_mode.html">editable installs</a> is crucial for SWE-agent so that
+changes to the package code take effect without having to reinstall the package.</p>
+</div>
 <p>The config file can have the following keys:</p>
 <ul>
 <li><code>python</code>: Python version (will be set up via conda)</li>
@@ -1468,19 +1507,39 @@ URLs or paths to local repositories.</p>
 <li><code>install</code>: A custom command</li>
 <li><code>post_install</code>: A list of custom commands</li>
 </ul>
-<h2 id="speeding-up-swe-agent">Speeding up SWE-agent</h2>
-<p>If you solve multiple issues from the same repository/in the same environment, you can specify the
-<code>--cache_task_images</code> flag. This will create a persistent docker image with the initialized environment
-required for the problem.</p>
-<p>We are also testing several changes that speed up SWE-agent. They can be enabled as <a href="../../config/env/">environment variables</a> or added to <code>keys.cfg</code>:</p>
-<div class="highlight"><pre><span></span><code><span class="c1"># Faster communication with docker container</span>
-<span class="nb">export</span><span class="w"> </span><span class="nv">SWE_AGENT_EXPERIMENTAL_COMMUNICATE</span><span class="o">=</span><span class="s2">&quot;1&quot;</span>
-<span class="c1"># Sparse git clone</span>
-<span class="nb">export</span><span class="w"> </span><span class="nv">SWE_AGENT_EXPERIMENTAL_CLONE</span><span class="o">=</span><span class="s2">&quot;1&quot;</span>
-<span class="c1"># Reduce time for docker startup</span>
-<span class="nb">export</span><span class="w"> </span><span class="nv">SWE_AGENT_DOCKER_START_UP_DELAY</span><span class="o">=</span><span class="s2">&quot;1&quot;</span>
-</code></pre></div>
-<p>See <a href="../../config/env/">environment variables</a> for more details.</p>
+<p>If you have very specific requirements, that can <em>not</em> be installed via conda, you can <a href="../../config/docker/">create a custom Docker image</a>.</p>
+<h2 id="speeding-up-swe-agent">Speeding up SWE-agent <a name="speedup"></a></h2>
+<div class="admonition tip">
+<p class="admonition-title">Speed up in v0.6</p>
+<p>SWE-agent v0.6 (June 4th, 2024) introduced major speedups. Please upgrade to the latest version.
+To make use of <a href="https://pypi.org/project/uv/"><code>uv pip</code></a>, make sure that you have the latest <code>sweagent/swe-agent:latest</code> image.</p>
+</div>
+<p>After the Docker container has been started, the target repository cloned/copied, and the dependencies installed,
+almost all of the remaining runtime can be attributed to waiting for your LM provider to answer your API calls.</p>
+<p>Therefore, speeding SWE-agent is mostly about speeding up the setup stages.
+We currently offer three ways to cache the setup stages:</p>
+<ul>
+<li>By specifying <code>--container_name</code>, you run SWE-agent with a <em>persistent</em> Docker container: Rather than being deleted
+  after every task, the Docker container will only be paused and can be resumed. Cloned repositories from previous
+  runs with the same container name, as well as any installed conda environments (versioned by the version of the package
+  you are installing) will be already available.</li>
+<li>Alternatively, you can specify <code>--cache_task_images</code>. For every repository/base commit/environment setup, we
+  <a href="https://docs.docker.com/reference/cli/docker/container/commit/">commit</a> the changes from the installation stage to the Docker image. The corresponding containers are temporary as usual.
+  Unlike the persistent containers, there will be a new image <em>for almost every base commit</em> (that is, probabyl for every task
+  when evaluating on a benchmark), which makes this only relevant when running over the same tasks more than once
+  (for example when testing different agent configurations or LMs).</li>
+<li>You can also <a href="../../config/docker/">build your own Docker image</a> and ensure that all relevant conda environments and repositories
+  are available (check the logs from the previous runs to get the names for repositories and environments).</li>
+</ul>
+<div class="admonition tip">
+<p class="admonition-title">Confused about the two options?</p>
+<p>Probably <code>--container_name my_container_name</code> will do what you want.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">What's the difference between Docker images and containers?</p>
+<p>Docker containers are running instances of Docker images (that you can think of as snapshots of what
+happens after you build the <code>Dockerfile</code>). <a href="https://stackoverflow.com/a/26960888/">More information</a>.</p>
+</div>
 <h2 id="taking-actions">Taking actions</h2>
 <ul>
 <li>As mentioned <a href="#specifying-the-repository">above</a>, you can use <code>--apply_patch_locally</code> to have SWE-agent apply successful solution attempts to local files.</li>
@@ -1606,7 +1665,7 @@ Watch out for the followoing message in the log:</p>
     <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.indexes", "content.action.edit", "navigation.footer", "content.code.copy", "content.footnote.tooltips", "header.autohide", "announce.dismiss"], "search": "../../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.081f42fc.min.js"></script>
+      <script src="../../assets/javascripts/bundle.ad660dcc.min.js"></script>
       
     
   <script id="init-glightbox">const lightbox = GLightbox({"touchNavigation": true, "loop": false, "zoomable": true, "draggable": true, "openEffect": "zoom", "closeEffect": "zoom", "slideEffect": "slide"});
